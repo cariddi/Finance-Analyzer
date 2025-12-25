@@ -1,21 +1,21 @@
-from utils import safe_get, avg, valid
+from utils import safe_get, valid, avg
 
-def analyze_cashflow(cf, fin):
-    results = {}
+def analyze_cashflow(cashflow, income):
+    r = {}
 
-    capex = safe_get(cf, "Capital Expenditure")
-    net_income = safe_get(fin, "Net Income")
+    capex = safe_get(cashflow, "Capital Expenditure")
+    net_income = safe_get(income, "Net Income")
+    buybacks = safe_get(cashflow, "Repurchase of Capital Stock")
 
-    if valid(capex) and valid(net_income):
-        ratio = avg(abs(capex / net_income), 10)
-
-        if ratio <= 0.25:
-            results["CapEx <= 25% NI"] = "EXCELLENT"
-        elif ratio <= 0.50:
-            results["CapEx <= 50% NI"] = "GREAT"
-        else:
-            results["CapEx"] = "BAD"
+    if valid(capex, 3) and valid(net_income, 3):
+        pct = avg(abs(capex) / net_income, 10)
+        r["CapEx <= 25% NI"] = "EXCELLENT" if pct <= 0.25 else "GREAT" if pct <= 0.50 else "BAD"
     else:
-        results["CapEx"] = "N/A"
+        r["CapEx <= 25% NI"] = "N/A"
 
-    return results
+    if buybacks is not None:
+        r["Stock Buybacks"] = avg(buybacks < 0, 10)
+    else:
+        r["Stock Buybacks"] = "N/A"
+
+    return r

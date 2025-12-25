@@ -1,22 +1,27 @@
 import numpy as np
-import pandas as pd
 
-def safe_get(df: pd.DataFrame, field: str):
-    if df is None or field not in df.index:
+def safe_get(df, field):
+    try:
+        series = df.loc[field].dropna()
+        if series.empty:
+            return None
+        return series
+    except KeyError:
         return None
-    return df.loc[field].dropna()
 
-def valid(series):
-    return series is not None and len(series) > 0
+def valid(series, min_years=1):
+    return series is not None and len(series) >= min_years
 
-def avg(series: pd.Series, years: int):
-    return series.head(years).mean()
+def last_n(series, n):
+    return series.iloc[:n]
 
-def trend_up(series: pd.Series, years: int):
-    s = series.head(years)
-    if len(s) < 3:
-        return False
-    x = np.arange(len(s))
-    y = s.values
-    slope = np.polyfit(x, y, 1)[0]
-    return slope > 0
+def avg(series, n):
+    return last_n(series, n).mean()
+
+def trend_up(series, n):
+    s = last_n(series, n)
+    return all(x < y for x, y in zip(s[::-1][:-1], s[::-1][1:]))
+
+def mostly_present(series, n, threshold=0.6):
+    s = last_n(series, n)
+    return len(s) / n >= threshold

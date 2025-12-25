@@ -1,73 +1,83 @@
-from utils import safe_get, avg, trend_up, valid
+from utils import safe_get, valid, avg, trend_up, mostly_present, last_n
 
-def analyze_balance(bs, cf, fin):
-    results = {}
+def analyze_balance(balance, cashflow, income):
+    r = {}
 
-    cash = safe_get(bs, "Cash, Cash Equivalents & Short Term Investments")
-    inventory = safe_get(bs, "Inventory")
-    retained = safe_get(bs, "Retained Earnings")
-    total_assets = safe_get(bs, "Total Assets")
-    long_term_debt = safe_get(bs, "Long Term Debt")
-    current_debt = safe_get(bs, "Current Debt")
-    equity = safe_get(bs, "Stockholders' Equity")
-
-    capex = safe_get(cf, "Capital Expenditure")
-    depreciation = safe_get(fin, "Depreciation Amortization Depletion")
-    net_income = safe_get(fin, "Net Income")
+    cash = safe_get(balance, "Cash, Cash Equivalents & Short Term Investments")
+    capex = safe_get(cashflow, "Capital Expenditure")
+    depreciation = safe_get(income, "Depreciation Amortization Depletion")
+    assets = safe_get(balance, "Total Assets")
+    net_income = safe_get(income, "Net Income")
+    current_debt = safe_get(balance, "Current Debt")
+    long_debt = safe_get(balance, "Long Term Debt")
+    liabilities = safe_get(balance, "Total Liabilities")
+    equity = safe_get(balance, "Stockholders' Equity")
+    treasury_stock = safe_get(balance, "Treasury Stock")
+    retained = safe_get(balance, "Retained Earnings")
+    treasury_shares = safe_get(balance, "Treasury Shares")
+    borrowings = safe_get(balance, "Other Current Borrowings")
 
     # Cash trend
-    results["Cash Uptrend 7Y"] = (
-        valid(cash) and (cash > 0).all() and trend_up(cash, 7)
-    )
-
-    # Inventory + Net Income
-    results["Inventory & NI Uptrend"] = (
-        valid(inventory)
-        and valid(net_income)
-        and (inventory > 0).all()
-        and (net_income > 0).all()
-        and trend_up(inventory, 7)
-    )
+    if valid(cash, 7):
+        r["Cash Uptrend"] = (cash > 0).all() and trend_up(cash, 7)
+    else:
+        r["Cash Uptrend"] = "N/A"
 
     # CapEx / Depreciation
-    if valid(capex) and valid(depreciation):
-        capex_ratio = abs(capex / depreciation)
-        results["CapEx/Depreciation > 2"] = avg(capex_ratio, 10) > 2
+    if valid(capex, 3) and valid(depreciation, 3):
+        r["CapEx/Depreciation > 2"] = avg(abs(capex / depreciation), 10) > 2
     else:
-        results["CapEx/Depreciation > 2"] = "N/A"
+        r["CapEx/Depreciation > 2"] = "N/A"
 
     # ROA
-    if valid(net_income) and valid(total_assets):
-        roa = net_income / total_assets
-        results["ROA > 5% & Assets >= 10B"] = (
-            avg(roa, 10) > 0.05 and total_assets.iloc[0] >= 10_000_000
-        )
+    if valid(assets, 3) and valid(net_income, 3):
+        roa = avg(net_income / assets, 10)
+        r["ROA > 5% & Assets >= 10B"] = roa > 0.05 and assets.iloc[0] >= 10_000_000_000
     else:
-        results["ROA > 5% & Assets >= 10B"] = "N/A"
+        r["ROA > 5% & Assets >= 10B"] = "N/A"
 
-    # Short vs Long Debt
-    if valid(current_debt) and valid(long_term_debt):
-        ratio = avg(current_debt / long_term_debt, 10)
-        if ratio < 0.6:
-            results["Short/Long Debt"] = "EXCELLENT"
-        elif ratio < 1:
-            results["Short/Long Debt"] = "GREAT"
-        else:
-            results["Short/Long Debt"] = "BAD"
+    # Debt ratios
+    if valid(current_debt, 1) and valid(long_debt, 1):
+        ratio = current_debt.iloc[0] / long_debt.iloc[0]
+        r["Debt Ratio"] = "EXCELLENT" if ratio < 0.6 else "GREAT" if ratio < 1 else "BAD"
     else:
-        results["Short/Long Debt"] = "N/A"
+        r["Debt Ratio"] = "N/A"
 
-    # Net Income pays debt
-    if valid(net_income) and valid(long_term_debt):
-        results["NI x4 >= LTD"] = (
-            avg(net_income, 10) * 4 >= avg(long_term_debt, 10)
-        )
+    # Long term debt levels
+    if valid(long_debt, 10):
+        avg_debt = avg(long_debt, 10)
+        r["LT Debt"] = "EXCELLENT" if avg_debt < 1e9 else "GREAT"
     else:
-        results["NI x4 >= LTD"] = "N/A"
+        r["LT Debt"] = "N/A"
+
+    # Net income coverage
+    if valid(net_income, 1) and valid(long_debt, 1):
+        r["NI Coverage"] = "EXCELLENT" if net_income.iloc[0] * 2 >= long_debt.iloc[0] else "GREAT" if net_income.iloc[0] * 4 >= long_debt.iloc[0] else "BAD"
+    else:
+        r["NI Coverage"] = "N/A"
+
+    # Liabilities ratio
+    if valid(liabilities, 1) and valid(equity, 1):
+        total_equity = equity.iloc[0] + (treasury_stock.iloc[0] if treasury_stock is not None else 0)
+        r["Liabilities Ratio"] = liabilities.iloc[0] / total_equity <= 0.8
+    else:
+        r["Liabilities Ratio"] = "N/A"
 
     # Retained earnings
-    results["Retained Earnings Uptrend"] = (
-        valid(retained) and trend_up(retained, 10)
-    )
+    if valid(retained, 5):
+        r["Retained Earnings Trend"] = trend_up(retained, 5)
+    else:
+        r["Retained Earnings Trend"] = "N/A"
 
-    return results
+    # Buybacks
+    if treasury_shares is not None:
+        r["Treasury Shares"] = mostly_present(treasury_shares, 10)
+    else:
+        r["Treasury Shares"] = "N/A"
+
+    if borrowings is not None:
+        r["Borrowings <= 6B"] = borrowings.iloc[0] <= 6_000_000_000
+    else:
+        r["Borrowings <= 6B"] = "N/A"
+
+    return r

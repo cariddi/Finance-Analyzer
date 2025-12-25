@@ -1,63 +1,70 @@
-from utils import safe_get, avg, trend_up, valid
+from utils import safe_get, valid, avg, trend_up, last_n
 
-def analyze_income(fin):
-    results = {}
+def analyze_income(fin, category: str):
+    r = {}
 
     revenue = safe_get(fin, "Total Revenue")
     gross_profit = safe_get(fin, "Gross Profit")
+    sga = safe_get(fin, "Selling General and Administrative")
+    rd = safe_get(fin, "Research & Development")
+    depreciation = safe_get(fin, "Depreciation Amortization Depletion")
+    interest = safe_get(fin, "Interest Expense Non Operating")
     operating_income = safe_get(fin, "Operating Income")
     net_income = safe_get(fin, "Net Income")
-    interest_expense = safe_get(fin, "Interest Expense Non Operating")
-    sga = safe_get(fin, "Selling General and Administrative")
-    depreciation = safe_get(fin, "Depreciation Amortization Depletion")
     eps = safe_get(fin, "Basic EPS")
 
     # Gross Margin
-    if valid(revenue) and valid(gross_profit):
-        gross_margin = gross_profit / revenue
-        results["AVG Gross Margin >= 40%"] = avg(gross_margin, 10) >= 0.40
+    if valid(revenue, 3) and valid(gross_profit, 3):
+        margin = gross_profit / revenue
+        r["Gross Margin >= 40%"] = {
+            "value": avg(margin, 10) >= 0.40,
+            "years": len(last_n(margin, 10))
+        }
     else:
-        results["AVG Gross Margin >= 40%"] = "N/A"
+        r["Gross Margin >= 40%"] = "N/A"
 
     # SGA %
-    if valid(sga) and valid(gross_profit):
-        sga_pct = sga / gross_profit
-        sga_avg = avg(sga_pct, 10)
-
-        if sga_avg < 0.30:
-            results["SGA"] = "EXCELLENT"
-        elif sga_avg <= 0.80:
-            results["SGA"] = "GREAT"
-        else:
-            results["SGA"] = "BAD"
+    if valid(sga, 3) and valid(gross_profit, 3):
+        pct = sga / gross_profit
+        v = avg(pct, 10)
+        r["SGA"] = "EXCELLENT" if v < 0.30 else "GREAT" if v <= 0.80 else "BAD"
     else:
-        results["SGA"] = "N/A"
+        r["SGA"] = "N/A"
+
+    # R&D
+    if rd is None:
+        r["R&D"] = "EXCELLENT"
+    else:
+        r["R&D"] = abs(avg(rd, 10))
 
     # Depreciation
-    if valid(depreciation) and valid(gross_profit):
-        dep_pct = depreciation / gross_profit
-        results["Depreciation <= 10% GP"] = avg(dep_pct, 10) <= 0.10
+    if valid(depreciation, 3) and valid(gross_profit, 3):
+        r["Depreciation <= 10% GP"] = avg(depreciation / gross_profit, 10) <= 0.10
     else:
-        results["Depreciation <= 10% GP"] = "N/A"
+        r["Depreciation <= 10% GP"] = "N/A"
 
-    # Interest Expense
-    if valid(interest_expense) and valid(operating_income):
-        int_pct = interest_expense / operating_income
-        results["Interest <= 15% OpIncome"] = avg(int_pct, 10) <= 0.15
+    # Interest Expense (category-specific)
+    if valid(interest, 3) and valid(operating_income, 3):
+        pct = avg(interest / operating_income, 10)
+        if category == "consumer":
+            r["Interest Expense"] = pct <= 0.15
+        elif category == "banking":
+            r["Interest Expense"] = pct <= 0.30
+        else:
+            r["Interest Expense"] = "N/A"
     else:
-        results["Interest <= 15% OpIncome"] = "N/A"
+        r["Interest Expense"] = "N/A"
 
     # Net Income Margin
-    if valid(net_income) and valid(revenue):
-        ni_margin = net_income / revenue
-        results["Net Income >= 20% Revenue"] = avg(ni_margin, 10) >= 0.20
+    if valid(net_income, 3) and valid(revenue, 3):
+        r["Net Income >= 20% Revenue"] = avg(net_income / revenue, 10) >= 0.20
     else:
-        results["Net Income >= 20% Revenue"] = "N/A"
+        r["Net Income >= 20% Revenue"] = "N/A"
 
-    # EPS
-    if valid(eps):
-        results["EPS Positive & Uptrend"] = (eps > 0).all() and trend_up(eps, 10)
+    # EPS Trend
+    if valid(eps, 10):
+        r["EPS Uptrend"] = (eps > 0).all() and trend_up(eps, 10)
     else:
-        results["EPS Positive & Uptrend"] = "N/A"
+        r["EPS Uptrend"] = "N/A"
 
-    return results
+    return r
