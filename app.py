@@ -2,6 +2,7 @@ from yahoo_client import load_company
 from metrics_income import analyze_income
 from metrics_balance import analyze_balance
 from metrics_cashflow import analyze_cashflow
+from markdown_exporter import export_to_markdown
 
 COMPANY_CATEGORIES = {
     "AAPL": "consumer",
@@ -19,36 +20,49 @@ def analyze_company(ticker):
     return {
         "ticker": ticker,
         "income": analyze_income(data["income"], category),
-        "balance": analyze_balance(data["balance"], data["cashflow"], data["income"]),
-        "cashflow": analyze_cashflow(data["cashflow"], data["income"])
+        "balance": analyze_balance(
+            data["balance"],
+            data["cashflow"],
+            data["income"]
+        ),
+        "cashflow": analyze_cashflow(
+            data["cashflow"],
+            data["income"]
+        )
     }
 
 if __name__ == "__main__":
     companies = [
-        # "AAPL", 
-        # "KO", 
-        # "JPM", 
-        # "PLTR", 
-        "NESN.SW", 
+        # "AAPL",
+        # "KO",
+        # "JPM",
+        # "PLTR",
+        "NESN.SW",
         # "SBUX"
     ]
 
-for c in companies:
-    print(f"\n📊 {c}")
-    result = analyze_company(c)
+    all_results = []
 
-    for section, rules in result.items():
-        if section == "ticker":
-            continue
+    for c in companies:
+        print(f"\n📊 {c}")
+        result = analyze_company(c)
+        all_results.append(result)
 
-        print(f"\n{section.upper()}")
+        for section, rules in result.items():
+            if section == "ticker":
+                continue
 
-        for rule in rules:
-            print(f"- {rule['title']}")
-            print(f"  {rule['description']}")
-            print(f"  Status: {rule['status']}")
+            print(f"\n{section.upper()}")
 
-            if rule["values"]:
-                for k, v in rule["values"].items():
-                    print(f"    {k}: {v}")
+            for rule in rules:
+                print(f"- {rule['title']}")
+                print(f"  {rule['description']}")
+                print(f"  Status: {rule['status']}")
 
+                if rule["values"]:
+                    for k, v in rule["values"].items():
+                        print(f"    {k}: {v}")
+
+    # 📄 Export Markdown report
+    md_file = export_to_markdown(all_results)
+    print(f"\n📝 Markdown report generated: {md_file}")
