@@ -1,7 +1,7 @@
 from utils import safe_get, valid, avg
 
 def analyze_cashflow(cashflow, income):
-    r = {}
+    rules = []
 
     capex = safe_get(cashflow, "Capital Expenditure")
     net_income = safe_get(income, "Net Income")
@@ -9,13 +9,26 @@ def analyze_cashflow(cashflow, income):
 
     if valid(capex, 3) and valid(net_income, 3):
         pct = avg(abs(capex) / net_income, 10)
-        r["CapEx <= 25% NI"] = "EXCELLENT" if pct <= 0.25 else "GREAT" if pct <= 0.50 else "BAD"
+        status = "EXCELLENT" if pct <= 0.25 else "GREAT" if pct <= 0.50 else "FAIL"
+        rules.append({
+            "title": "Capital Expenditures",
+            "description": "CapEx relative to Net Income",
+            "status": status,
+            "values": {"avg_capex_pct": round(pct, 2)}
+        })
     else:
-        r["CapEx <= 25% NI"] = "N/A"
+        rules.append({
+            "title": "Capital Expenditures",
+            "description": "CapEx relative to Net Income",
+            "status": "N/A",
+            "values": {}
+        })
 
-    if buybacks is not None:
-        r["Stock Buybacks"] = avg(buybacks < 0, 10)
-    else:
-        r["Stock Buybacks"] = "N/A"
+    rules.append({
+        "title": "Stock Buybacks",
+        "description": "Consistent repurchase of capital stock",
+        "status": "PASS" if buybacks is not None else "N/A",
+        "values": {}
+    })
 
-    return r
+    return rules

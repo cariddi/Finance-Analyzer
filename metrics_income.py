@@ -1,7 +1,7 @@
 from utils import safe_get, valid, avg, trend_up, last_n
 
 def analyze_income(fin, category: str):
-    r = {}
+    rules = []
 
     revenue = safe_get(fin, "Total Revenue")
     gross_profit = safe_get(fin, "Gross Profit")
@@ -16,55 +16,118 @@ def analyze_income(fin, category: str):
     # Gross Margin
     if valid(revenue, 3) and valid(gross_profit, 3):
         margin = gross_profit / revenue
-        r["Gross Margin >= 40%"] = {
-            "value": avg(margin, 10) >= 0.40,
-            "years": len(last_n(margin, 10))
-        }
+        value = avg(margin, 10)
+        rules.append({
+            "title": "Gross Profit Margin",
+            "description": "Average Gross Profit / Revenue over last years ≥ 40%",
+            "status": "PASS" if value >= 0.40 else "FAIL",
+            "values": {
+                "avg_margin": round(value, 2),
+                "years_used": len(last_n(margin, 10))
+            }
+        })
     else:
-        r["Gross Margin >= 40%"] = "N/A"
+        rules.append({
+            "title": "Gross Profit Margin",
+            "description": "Average Gross Profit / Revenue over last years ≥ 40%",
+            "status": "N/A",
+            "values": {}
+        })
 
     # SGA %
     if valid(sga, 3) and valid(gross_profit, 3):
-        pct = sga / gross_profit
-        v = avg(pct, 10)
-        r["SGA"] = "EXCELLENT" if v < 0.30 else "GREAT" if v <= 0.80 else "BAD"
+        pct = avg(sga / gross_profit, 10)
+        status = "EXCELLENT" if pct < 0.30 else "GREAT" if pct <= 0.80 else "FAIL"
+        rules.append({
+            "title": "SGA Efficiency",
+            "description": "Selling, General & Admin expenses as % of Gross Profit",
+            "status": status,
+            "values": {"avg_sga_pct": round(pct, 2)}
+        })
     else:
-        r["SGA"] = "N/A"
+        rules.append({
+            "title": "SGA Efficiency",
+            "description": "Selling, General & Admin expenses as % of Gross Profit",
+            "status": "N/A",
+            "values": {}
+        })
 
     # R&D
-    if rd is None:
-        r["R&D"] = "EXCELLENT"
-    else:
-        r["R&D"] = abs(avg(rd, 10))
+    rules.append({
+        "title": "R&D Spending",
+        "description": "Research & Development close to zero (or absent)",
+        "status": "EXCELLENT" if rd is None else "PASS",
+        "values": {"avg_rd": 0 if rd is None else avg(rd, 10)}
+    })
 
     # Depreciation
     if valid(depreciation, 3) and valid(gross_profit, 3):
-        r["Depreciation <= 10% GP"] = avg(depreciation / gross_profit, 10) <= 0.10
+        pct = avg(depreciation / gross_profit, 10)
+        rules.append({
+            "title": "Depreciation Load",
+            "description": "Depreciation ≤ 10% of Gross Profit",
+            "status": "PASS" if pct <= 0.10 else "FAIL",
+            "values": {"avg_dep_pct": round(pct, 2)}
+        })
     else:
-        r["Depreciation <= 10% GP"] = "N/A"
+        rules.append({
+            "title": "Depreciation Load",
+            "description": "Depreciation ≤ 10% of Gross Profit",
+            "status": "N/A",
+            "values": {}
+        })
 
-    # Interest Expense (category-specific)
+    # Interest Expense
     if valid(interest, 3) and valid(operating_income, 3):
         pct = avg(interest / operating_income, 10)
-        if category == "consumer":
-            r["Interest Expense"] = pct <= 0.15
-        elif category == "banking":
-            r["Interest Expense"] = pct <= 0.30
-        else:
-            r["Interest Expense"] = "N/A"
+        limit = 0.15 if category == "consumer" else 0.30 if category == "banking" else None
+        status = "PASS" if limit and pct <= limit else "FAIL"
+        rules.append({
+            "title": "Interest Burden",
+            "description": f"Interest Expense ≤ {int(limit*100)}% of Operating Income",
+            "status": status,
+            "values": {"avg_interest_pct": round(pct, 2)}
+        })
     else:
-        r["Interest Expense"] = "N/A"
+        rules.append({
+            "title": "Interest Burden",
+            "description": "Interest Expense vs Operating Income",
+            "status": "N/A",
+            "values": {}
+        })
 
     # Net Income Margin
     if valid(net_income, 3) and valid(revenue, 3):
-        r["Net Income >= 20% Revenue"] = avg(net_income / revenue, 10) >= 0.20
+        pct = avg(net_income / revenue, 10)
+        rules.append({
+            "title": "Net Income Margin",
+            "description": "Net Income ≥ 20% of Revenue",
+            "status": "PASS" if pct >= 0.20 else "FAIL",
+            "values": {"avg_net_margin": round(pct, 2)}
+        })
     else:
-        r["Net Income >= 20% Revenue"] = "N/A"
+        rules.append({
+            "title": "Net Income Margin",
+            "description": "Net Income ≥ 20% of Revenue",
+            "status": "N/A",
+            "values": {}
+        })
 
     # EPS Trend
     if valid(eps, 10):
-        r["EPS Uptrend"] = (eps > 0).all() and trend_up(eps, 10)
+        status = "PASS" if (eps > 0).all() and trend_up(eps, 10) else "FAIL"
+        rules.append({
+            "title": "EPS Growth",
+            "description": "Positive EPS with upward trend over 10 years",
+            "status": status,
+            "values": {"last_eps": eps.iloc[0]}
+        })
     else:
-        r["EPS Uptrend"] = "N/A"
+        rules.append({
+            "title": "EPS Growth",
+            "description": "Positive EPS with upward trend over 10 years",
+            "status": "N/A",
+            "values": {}
+        })
 
-    return r
+    return rules

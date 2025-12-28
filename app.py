@@ -7,7 +7,9 @@ COMPANY_CATEGORIES = {
     "AAPL": "consumer",
     "KO": "consumer",
     "JPM": "banking",
-    "PLTR": "tech"
+    "PLTR": "tech",
+    "NESN.SW": "consumer",
+    "SBUX": "consumer",
 }
 
 def analyze_company(ticker):
@@ -22,14 +24,31 @@ def analyze_company(ticker):
     }
 
 if __name__ == "__main__":
-    companies = ["AAPL", "KO", "JPM", "PLTR"]
+    companies = [
+        # "AAPL", 
+        # "KO", 
+        # "JPM", 
+        # "PLTR", 
+        "NESN.SW", 
+        # "SBUX"
+    ]
 
-    for c in companies:
-        print(f"\n📊 {c}")
-        result = analyze_company(c)
-        for section, rules in result.items():
-            if section == "ticker":
-                continue
-            print(f"\n{section.upper()}")
-            for k, v in rules.items():
-                print(f"{k}: {v}")
+for c in companies:
+    print(f"\n📊 {c}")
+    result = analyze_company(c)
+
+    for section, rules in result.items():
+        if section == "ticker":
+            continue
+
+        print(f"\n{section.upper()}")
+
+        for rule in rules:
+            print(f"- {rule['title']}")
+            print(f"  {rule['description']}")
+            print(f"  Status: {rule['status']}")
+
+            if rule["values"]:
+                for k, v in rule["values"].items():
+                    print(f"    {k}: {v}")
+
