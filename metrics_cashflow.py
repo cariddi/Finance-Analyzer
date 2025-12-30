@@ -5,8 +5,8 @@ def analyze_cashflow(cashflow, income):
 
     capex = safe_get(cashflow, "Capital Expenditure")
     net_income = safe_get(income, "Net Income")
-    buybacks = safe_get(cashflow, "Repurchase of Capital Stock")
-
+    buybacks = safe_get(cashflow, "Repurchase Of Capital Stock")
+    
     if valid(capex, 3) and valid(net_income, 3):
         pct = avg(abs(capex) / net_income, 10)
         status = "EXCELLENT" if pct <= 0.25 else "GREAT" if pct <= 0.50 else "FAIL"

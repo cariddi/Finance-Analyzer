@@ -85,7 +85,7 @@ def analyze_balance(balance, cashflow, income):
         "title": "Retained Earnings Trend",
         "description": "Retained earnings showing upward trend over 4 years (SHOULD BE 5)",
         "status": "PASS" if valid(retained, 4) and trend_mostly_up(retained, 4) else "FAIL",
-        "values": {"retained_0": retained[3], "retained_1": retained[2], "retained_2": retained[1], "retained_3": retained[0]}
+        "values": {"retained_0": retained.iloc[3], "retained_1": retained.iloc[2], "retained_2": retained.iloc[1], "retained_3": retained.iloc[0]}
     })
 
     # Borrowings
