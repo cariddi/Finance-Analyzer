@@ -8,8 +8,8 @@ def analyze_balance(balance, cashflow, income):
     depreciation = safe_get(income, "Depreciation Amortization Depletion") if safe_get(income, "Depreciation Amortization Depletion") else safe_get(income, "Reconciled Depreciation")
     assets = safe_get(balance, "Total Assets")
     net_income = safe_get(income, "Net Income")
-    current_debt = safe_get(balance, "Current Debt")
-    long_debt = safe_get(balance, "Long Term Debt")
+    current_debt = safe_get(balance, "Current Debt And Capital Lease Obligation")
+    long_debt = safe_get(balance, "Long Term Debt And Capital Lease Obligation")
     liabilities = safe_get(balance, "Total Liabilities")
     equity = safe_get(balance, "Stockholders' Equity")
     treasury_stock = safe_get(balance, "Treasury Stock")
@@ -92,7 +92,7 @@ def analyze_balance(balance, cashflow, income):
     rules.append({
         "title": "Borrowings Level",
         "description": "Other current borrowings ≤ 6B",
-        "status": "PASS" if borrowings is not None and borrowings.iloc[0] <= 6_000_000_000 else "FAIL",
+        "status": "PASS" if borrowings is None or borrowings.iloc[0] <= 6_000_000_000 else "FAIL",
         "values": {"current_borrowings": borrowings.iloc[0] if borrowings is not None else None}
     })
 
