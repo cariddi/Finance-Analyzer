@@ -5,7 +5,7 @@ def analyze_balance(balance, cashflow, income):
 
     cash = safe_get(balance, "Cash Cash Equivalents And Short Term Investments")
     capex = safe_get(cashflow, "Capital Expenditure")
-    depreciation = safe_get(income, "Depreciation Amortization Depletion")
+    depreciation = safe_get(income, "Depreciation Amortization Depletion") if safe_get(income, "Depreciation Amortization Depletion") else safe_get(income, "Reconciled Depreciation")
     assets = safe_get(balance, "Total Assets")
     net_income = safe_get(income, "Net Income")
     current_debt = safe_get(balance, "Current Debt")
@@ -17,8 +17,6 @@ def analyze_balance(balance, cashflow, income):
     treasury_shares = safe_get(balance, "Treasury Shares")
     borrowings = safe_get(balance, "Other Current Borrowings")
     
-    # print(cash)
-
     # Cash trend
     rules.append({
         "title": "Cash Growth",
