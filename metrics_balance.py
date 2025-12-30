@@ -83,9 +83,9 @@ def analyze_balance(balance, cashflow, income):
     # Retained Earnings
     rules.append({
         "title": "Retained Earnings Trend",
-        "description": "Retained earnings showing upward trend",
-        "status": "PASS" if valid(retained, 5) and trend_mostly_up(retained, 5) else "N/A",
-        "values": {}
+        "description": "Retained earnings showing upward trend over 4 years (SHOULD BE 5)",
+        "status": "PASS" if valid(retained, 4) and trend_mostly_up(retained, 4) else "FAIL",
+        "values": {"retained_0": retained[3], "retained_1": retained[2], "retained_2": retained[1], "retained_3": retained[0]}
     })
 
     # Borrowings
