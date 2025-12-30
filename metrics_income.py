@@ -1,11 +1,11 @@
-from utils import safe_get, valid, avg, trend_up, last_n
+from utils import safe_get, valid, avg, trend_mostly_up, last_n
 
 def analyze_income(fin, category: str):
     rules = []
 
     revenue = safe_get(fin, "Total Revenue")
     gross_profit = safe_get(fin, "Gross Profit")
-    sga = safe_get(fin, "Selling General and Administrative")
+    sga = safe_get(fin, "Selling General And Administration")
     rd = safe_get(fin, "Research & Development")
     depreciation = safe_get(fin, "Depreciation Amortization Depletion")
     interest = safe_get(fin, "Interest Expense Non Operating")
@@ -61,8 +61,8 @@ def analyze_income(fin, category: str):
     })
 
     # Depreciation
-    if valid(depreciation, 3) and valid(gross_profit, 3):
-        pct = avg(depreciation / gross_profit, 10)
+    if valid(gross_profit, 3):
+        pct = avg(depreciation if depreciation is not None else 0 / gross_profit, 10)
         rules.append({
             "title": "Depreciation Load",
             "description": "Depreciation ≤ 10% of Gross Profit",
@@ -114,18 +114,18 @@ def analyze_income(fin, category: str):
         })
 
     # EPS Trend
-    if valid(eps, 10):
-        status = "PASS" if (eps > 0).all() and trend_up(eps, 10) else "FAIL"
+    if valid(eps, 4):
+        status = "PASS" if (eps > 0).all() and trend_mostly_up(eps, 4) else "FAIL"
         rules.append({
             "title": "EPS Growth",
-            "description": "Positive EPS with upward trend over 10 years",
+            "description": "Positive EPS with upward trend over 4 years (SHOULD BE 10)",
             "status": status,
-            "values": {"last_eps": eps.iloc[0]}
+            "values": {"eps_0": eps.iloc[3], "eps_1": eps.iloc[2], "eps_2": eps.iloc[1], "eps_3": eps.iloc[0]}
         })
     else:
         rules.append({
             "title": "EPS Growth",
-            "description": "Positive EPS with upward trend over 10 years",
+            "description": "Positive EPS with upward trend over 4 years (SHOULD BE 10)",
             "status": "N/A",
             "values": {}
         })

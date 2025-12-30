@@ -1,9 +1,9 @@
-from utils import safe_get, valid, avg, trend_up, mostly_present
+from utils import safe_get, valid, avg, trend_mostly_up, mostly_present
 
 def analyze_balance(balance, cashflow, income):
     rules = []
 
-    cash = safe_get(balance, "Cash, Cash Equivalents & Short Term Investments")
+    cash = safe_get(balance, "Cash Cash Equivalents And Short Term Investments")
     capex = safe_get(cashflow, "Capital Expenditure")
     depreciation = safe_get(income, "Depreciation Amortization Depletion")
     assets = safe_get(balance, "Total Assets")
@@ -16,13 +16,15 @@ def analyze_balance(balance, cashflow, income):
     retained = safe_get(balance, "Retained Earnings")
     treasury_shares = safe_get(balance, "Treasury Shares")
     borrowings = safe_get(balance, "Other Current Borrowings")
+    
+    # print(cash)
 
     # Cash trend
     rules.append({
         "title": "Cash Growth",
-        "description": "Cash balance positive and increasing over 7 years",
-        "status": "PASS" if valid(cash, 7) and (cash > 0).all() and trend_up(cash, 7) else "N/A",
-        "values": {"latest_cash": cash.iloc[0] if cash is not None else None}
+        "description": "Cash balance positive and increasing over 4 years (SHOULD BE 7)",
+        "status": "PASS" if valid(cash, 4) and (cash > 0).all() and trend_mostly_up(cash, 4) else "FAIL",
+        "values": {"cash_0": cash.iloc[3], "cash_1": cash.iloc[2], "cash_2": cash.iloc[1], "cash_3": cash.iloc[0]}
     })
 
     # CapEx / Depreciation
@@ -84,7 +86,7 @@ def analyze_balance(balance, cashflow, income):
     rules.append({
         "title": "Retained Earnings Trend",
         "description": "Retained earnings showing upward trend",
-        "status": "PASS" if valid(retained, 5) and trend_up(retained, 5) else "N/A",
+        "status": "PASS" if valid(retained, 5) and trend_mostly_up(retained, 5) else "N/A",
         "values": {}
     })
 
