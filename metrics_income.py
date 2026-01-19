@@ -40,14 +40,14 @@ def analyze_income(fin, category: str):
         status = "EXCELLENT" if pct < 0.30 else "GREAT" if pct <= 0.80 else "FAIL"
         rules.append({
             "title": "SGA Efficiency",
-            "description": "AVG Selling, General & Admin expenses as % (either < 30 || < 80) of Gross Profit over last 4 years (SHOULD BE 10)",
+            "description": "AVG Selling, General & Admin expenses as % (either < 30 OR < 80) of Gross Profit over last 4 years (SHOULD BE 10)",
             "status": status,
             "values": {"avg_sga_pct": round(pct, 2)}
         })
     else:
         rules.append({
             "title": "SGA Efficiency",
-            "description": "AVG Selling, General & Admin expenses as % (either < 30 || < 80) of Gross Profit over last 4 years (SHOULD BE 10)",
+            "description": "AVG Selling, General & Admin expenses as % (either < 30 OR < 80) of Gross Profit over last 4 years (SHOULD BE 10)",
             "status": "N/A",
             "values": {}
         })
