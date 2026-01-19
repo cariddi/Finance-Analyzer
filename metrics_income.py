@@ -1,4 +1,4 @@
-from utils import safe_get, valid, avg, trend_mostly_up, last_n
+from utils import safe_get, valid, avg, trend_mostly_up, last_n, series_values_by_year
 
 def analyze_income(fin, category: str):
     rules = []
@@ -19,7 +19,7 @@ def analyze_income(fin, category: str):
         value = avg(margin, 10)
         rules.append({
             "title": "Gross Profit Margin",
-            "description": "Average Gross Profit / Revenue over last years ≥ 40%",
+            "description": "Average Gross Profit / Revenue over last 4 years (SHOULD BE 10) ≥ 40%",
             "status": "PASS" if value >= 0.40 else "FAIL",
             "values": {
                 "avg_margin": round(value, 2),
@@ -29,7 +29,7 @@ def analyze_income(fin, category: str):
     else:
         rules.append({
             "title": "Gross Profit Margin",
-            "description": "Average Gross Profit / Revenue over last years ≥ 40%",
+            "description": "Average Gross Profit / Revenue over last 4 years (SHOULD BE 10) ≥ 40%",
             "status": "N/A",
             "values": {}
         })
@@ -40,14 +40,14 @@ def analyze_income(fin, category: str):
         status = "EXCELLENT" if pct < 0.30 else "GREAT" if pct <= 0.80 else "FAIL"
         rules.append({
             "title": "SGA Efficiency",
-            "description": "Selling, General & Admin expenses as % of Gross Profit",
+            "description": "AVG Selling, General & Admin expenses as % (either < 30 || < 80) of Gross Profit over last 4 years (SHOULD BE 10)",
             "status": status,
             "values": {"avg_sga_pct": round(pct, 2)}
         })
     else:
         rules.append({
             "title": "SGA Efficiency",
-            "description": "Selling, General & Admin expenses as % of Gross Profit",
+            "description": "AVG Selling, General & Admin expenses as % (either < 30 || < 80) of Gross Profit over last 4 years (SHOULD BE 10)",
             "status": "N/A",
             "values": {}
         })
@@ -55,7 +55,7 @@ def analyze_income(fin, category: str):
     # R&D
     rules.append({
         "title": "R&D Spending",
-        "description": "Research & Development close to zero (or absent)",
+        "description": "Research & Development close to zero (or absent) over last 4 years (SHOULD BE 10)",
         "status": "EXCELLENT" if rd is None else "PASS",
         "values": {"avg_rd": 0 if rd is None else avg(rd, 10)}
     })
@@ -65,14 +65,14 @@ def analyze_income(fin, category: str):
         pct = avg(depreciation if depreciation is not None else 0 / gross_profit, 10)
         rules.append({
             "title": "Depreciation Load",
-            "description": "Depreciation ≤ 10% of Gross Profit",
+            "description": "Depreciation ≤ 10% of Gross Profit over last 4 years (SHOULD BE 10)",
             "status": "PASS" if pct <= 0.10 else "FAIL",
             "values": {"avg_dep_pct": round(pct, 2)}
         })
     else:
         rules.append({
             "title": "Depreciation Load",
-            "description": "Depreciation ≤ 10% of Gross Profit",
+            "description": "Depreciation ≤ 10% of Gross Profit over last 4 years (SHOULD BE 10)",
             "status": "N/A",
             "values": {}
         })
@@ -84,14 +84,14 @@ def analyze_income(fin, category: str):
         status = "PASS" if limit and pct <= limit else "FAIL"
         rules.append({
             "title": "Interest Burden",
-            "description": f"Interest Expense ≤ {int(limit*100)}% of Operating Income",
+            "description": f"Interest Expense ≤ {int(limit*100)}% of Operating Income over last 4 years (SHOULD BE 10)",
             "status": status,
             "values": {"avg_interest_pct": round(pct, 2)}
         })
     else:
         rules.append({
             "title": "Interest Burden",
-            "description": "Interest Expense vs Operating Income",
+            "description": f"Interest Expense ≤ {int(limit*100)}% of Operating Income over last 4 years (SHOULD BE 10)",
             "status": "N/A",
             "values": {}
         })
@@ -101,14 +101,14 @@ def analyze_income(fin, category: str):
         pct = avg(net_income / revenue, 10)
         rules.append({
             "title": "Net Income Margin",
-            "description": "Net Income ≥ 20% of Revenue",
+            "description": "Net Income ≥ 20% of Revenue over last 4 years (SHOULD BE 10)",
             "status": "PASS" if pct >= 0.20 else "FAIL",
             "values": {"avg_net_margin": round(pct, 2)}
         })
     else:
         rules.append({
             "title": "Net Income Margin",
-            "description": "Net Income ≥ 20% of Revenue",
+            "description": "Net Income ≥ 20% of Revenue over last 4 years (SHOULD BE 10)",
             "status": "N/A",
             "values": {}
         })
@@ -120,7 +120,7 @@ def analyze_income(fin, category: str):
             "title": "EPS Growth",
             "description": "Positive EPS with upward trend over 4 years (SHOULD BE 10)",
             "status": status,
-            "values": {"eps_0": eps.iloc[3], "eps_1": eps.iloc[2], "eps_2": eps.iloc[1], "eps_3": eps.iloc[0]}
+            "values": series_values_by_year(eps, 4, "eps")
         })
     else:
         rules.append({

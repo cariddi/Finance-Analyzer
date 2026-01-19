@@ -38,7 +38,7 @@ if __name__ == "__main__":
         # "JPM",
         # "PLTR",
         "NESN.SW",
-        # "SBUX"
+        "SBUX"
     ]
 
     all_results = []

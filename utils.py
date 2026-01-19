@@ -13,6 +13,8 @@ def valid(series, min_years=1):
     return series is not None and len(series) >= min_years
 
 def last_n(series, n):
+    if series is None:
+        return []
     return series.iloc[:n]
 
 def avg(series, n):
@@ -50,3 +52,14 @@ def trend_mostly_up(series, n, min_positive_ratio=0.6, min_total_growth=0.1):
     positive_ratio = sum(d > 0 for d in deltas) / len(deltas)
 
     return positive_ratio >= min_positive_ratio
+
+def series_values_by_year(series, n, prefix):
+    """
+    Returns a dict like:
+    { f"{prefix}_2024": value, f"{prefix}_2023": value, ... }
+    """
+    s = last_n(series, n)
+    return {
+        f"{prefix}_{str(year)[:4]}": value
+        for year, value in zip(s.index, s.values)
+    }
